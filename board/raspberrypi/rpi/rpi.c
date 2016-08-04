@@ -451,6 +451,35 @@ int board_init(void)
 	return power_on_module(BCM2835_MBOX_POWER_DEVID_USB_HCD);
 }
 
+static bool rpi_is_serial_active(void)
+{
+#ifndef CONFIG_PL01X_SERIAL
+	int serial_gpio = 15;
+	struct udevice *dev;
+
+	/*
+	 * The RPi3 disables the mini uart by default. The easiest way to find
+	 * out whether it is available is to check if the pin is muxed.
+	 */
+	if (uclass_first_device(UCLASS_GPIO, &dev) || !dev)
+		return true;
+
+	if (bcm2835_gpio_get_func_id(dev, serial_gpio) != BCM2835_GPIO_ALT5)
+		return false;
+#endif
+
+	return true;
+}
+
+int board_late_init(void)
+{
+	/* Disable mini-UART I/O if it's not pinmuxed to our pins */
+	if (!rpi_is_serial_active())
+		gd->cur_serial_dev = NULL;
+
+	return 0;
+}
+
 int board_mmc_init(bd_t *bis)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(struct msg_get_clock_rate, msg_clk, 1);
