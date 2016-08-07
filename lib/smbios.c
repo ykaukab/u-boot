@@ -7,10 +7,13 @@
  */
 
 #include <common.h>
+#include <efi_loader.h>
 #include <smbios.h>
 #include <tables_csum.h>
 #include <version.h>
+#ifdef CONFIG_X86
 #include <asm/cpu.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -79,14 +82,20 @@ static int smbios_write_type0(uintptr_t *current, int handle)
 	t->vendor = smbios_add_string(t->eos, "U-Boot");
 	t->bios_ver = smbios_add_string(t->eos, PLAIN_VERSION);
 	t->bios_release_date = smbios_add_string(t->eos, U_BOOT_DMI_DATE);
+#ifdef CONFIG_ROM_SIZE
 	t->bios_rom_size = (CONFIG_ROM_SIZE / 65536) - 1;
+#endif
 	t->bios_characteristics = BIOS_CHARACTERISTICS_PCI_SUPPORTED |
 				  BIOS_CHARACTERISTICS_SELECTABLE_BOOT |
 				  BIOS_CHARACTERISTICS_UPGRADEABLE;
 #ifdef CONFIG_GENERATE_ACPI_TABLE
 	t->bios_characteristics_ext1 = BIOS_CHARACTERISTICS_EXT1_ACPI;
 #endif
+#ifdef CONFIG_EFI_LOADER
+	t->bios_characteristics_ext1 |= BIOS_CHARACTERISTICS_EXT1_UEFI;
+#endif
 	t->bios_characteristics_ext2 = BIOS_CHARACTERISTICS_EXT2_TARGET;
+
 	t->bios_major_release = 0xff;
 	t->bios_minor_release = 0xff;
 	t->ec_major_release = 0xff;
@@ -152,6 +161,7 @@ static int smbios_write_type3(uintptr_t *current, int handle)
 	return len;
 }
 
+#ifdef CONFIG_X86
 static int smbios_write_type4(uintptr_t *current, int handle)
 {
 	struct smbios_type4 *t = (struct smbios_type4 *)*current;
@@ -184,6 +194,7 @@ static int smbios_write_type4(uintptr_t *current, int handle)
 
 	return len;
 }
+#endif
 
 static int smbios_write_type32(uintptr_t *current, int handle)
 {
@@ -216,7 +227,9 @@ static smbios_write_type smbios_write_funcs[] = {
 	smbios_write_type1,
 	smbios_write_type2,
 	smbios_write_type3,
+#ifdef CONFIG_X86
 	smbios_write_type4,
+#endif
 	smbios_write_type32,
 	smbios_write_type127
 };
@@ -267,3 +280,26 @@ uintptr_t write_smbios_table(uintptr_t addr)
 
 	return addr;
 }
+
+#ifdef CONFIG_EFI_LOADER
+
+void efi_smbios_register(void)
+{
+	static efi_guid_t smbios_guid = SMBIOS_TABLE_GUID;
+	/* Map within the low 32 bits, to allow for 32bit SMBIOS tables */
+	uint64_t dmi = 0xffffffff;
+	/* Reserve 4kb for SMBIOS */
+	uint64_t pages = 1;
+	int memtype = EFI_RUNTIME_SERVICES_DATA;
+
+	if (efi_allocate_pages(1, memtype, pages, &dmi) != EFI_SUCCESS)
+		return;
+
+	/* Generate SMBIOS tables */
+	write_smbios_table(dmi);
+
+	/* And expose them to our EFI payload */
+	efi_install_configuration_table(&smbios_guid, (void*)dmi);
+}
+
+#endif
