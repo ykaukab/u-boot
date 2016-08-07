@@ -394,7 +394,7 @@ efi_status_t efi_install_configuration_table(efi_guid_t *guid, void *table)
 	/* Add a new entry */
 	memcpy(&efi_conf_table[i].guid, guid, sizeof(*guid));
 	efi_conf_table[i].table = table;
-	systab.nr_tables = i;
+	systab.nr_tables = i + 1;
 
 	return EFI_SUCCESS;
 }
