@@ -262,6 +262,15 @@ dtb-$(CONFIG_SOC_KEYSTONE) += k2hk-evm.dtb \
 	k2e-evm.dtb \
 	k2g-evm.dtb
 
+dtb-$(CONFIG_ARCH_BCM283X) += \
+        bcm2835-rpi-a-plus.dtb \
+        bcm2835-rpi-a.dtb \
+        bcm2835-rpi-b-plus.dtb \
+        bcm2835-rpi-b-rev2.dtb \
+        bcm2835-rpi-b.dtb \
+        bcm2836-rpi-2-b.dtb \
+        bcm2837-rpi-3-b.dtb
+
 targets += $(dtb-y)
 
 # Add any required device tree compiler flags here
