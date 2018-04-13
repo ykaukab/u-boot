@@ -291,7 +291,8 @@ F:	drivers/spi/zynq_spi.c
 F:	drivers/usb/host/ehci-zynq.c
 F:	drivers/watchdog/cdns_wdt.c
 F:	include/zynqmppl.h
-F:	tools/zynqimage.c
+F:	tools/zynq*.c
+F:	tools/zynq*.h
 N:	zynqmp
 
 BUILDMAN
